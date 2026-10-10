@@ -1,0 +1,283 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vigil Healthcare AI</title>
+<style>
+:root {
+  --bg:#f5f7fb; --panel:#ffffff; --ink:#17233c; --muted:#748099;
+  --line:#e6eaf2; --blue:#4263eb; --blue-light:#edf1ff;
+  --teal:#0e9f91; --shadow:0 8px 30px rgba(30,45,80,.06);
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 Inter,Segoe UI,Arial,sans-serif; }
+button,input { font:inherit; }
+button { cursor:pointer; }
+.app { min-height:100vh; display:grid; grid-template-columns:245px minmax(0,1fr); }
+.sidebar { background:#fff; border-right:1px solid var(--line); padding:25px 17px; display:flex; flex-direction:column; gap:25px; }
+.brand { display:flex; align-items:center; gap:11px; padding:0 8px; }
+.logo { width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,#4263eb,#13b8a6);color:white;display:grid;place-items:center;font-size:23px;font-weight:800; }
+.brand h2 { font-size:17px; margin:0; letter-spacing:-.5px; }
+.brand p { color:var(--muted);font-size:11px;margin:2px 0 0; }
+.nav-label { color:#9aa4b7;font-size:10px;font-weight:800;letter-spacing:1.5px;padding:0 12px; }
+.nav { display:grid;gap:6px; }
+.nav button { border:0;background:transparent;text-align:left;padding:12px;border-radius:11px;color:#66738d;display:flex;gap:12px;align-items:center; }
+.nav button.active,.nav button:hover { background:var(--blue-light);color:var(--blue); }
+.nav .ico { width:20px;text-align:center;font-size:17px; }
+.side-note { margin-top:auto;padding:16px;border-radius:14px;background:#f0f6ff;border:1px solid #e2ebff; }
+.side-note strong { display:block;font-size:12px;margin-bottom:5px; }
+.side-note p { color:var(--muted);font-size:11px;margin:0; }
+main { min-width:0;padding:28px clamp(16px,3vw,38px) 38px; }
+.topbar { display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:25px; }
+.eyebrow { color:var(--blue);font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase; }
+h1 { font-size:clamp(23px,3vw,31px);letter-spacing:-1px;margin:5px 0 4px; }
+.subtitle { color:var(--muted);margin:0; }
+.local-pill { display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:10px 13px;font-size:12px;color:#526078;white-space:nowrap; }
+.dot { width:8px;height:8px;background:#18a779;border-radius:50%; }
+.hero { background:linear-gradient(115deg,#243d83,#4263eb 68%,#5879f3);color:white;border-radius:20px;padding:25px 27px;display:flex;align-items:center;justify-content:space-between;gap:20px;box-shadow:var(--shadow); }
+.hero h2 { font-size:22px;margin:0 0 7px;letter-spacing:-.5px; }
+.hero p { color:#e2e9ff;margin:0;max-width:570px; }
+.hero-symbol { font-size:55px;opacity:.95;padding:0 14px; }
+.section-title { display:flex;align-items:center;justify-content:space-between;gap:12px;margin:27px 0 13px; }
+.section-title h2 { font-size:16px;margin:0; }
+.section-title span { font-size:12px;color:var(--muted); }
+.stats { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px; }
+.card { background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:19px;box-shadow:var(--shadow);min-width:0; }
+.stat-top { display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--muted);font-size:12px; }
+.stat-icon { width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:#edf1ff;font-size:18px; }
+.stat-value { font-size:23px;font-weight:750;margin:13px 0 3px;letter-spacing:-.6px; }
+.stat-help { color:var(--muted);font-size:11px; }
+.content-grid { display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:16px;align-items:start; }
+.panel-title { margin:0;font-size:16px; }
+.panel-subtitle { margin:4px 0 17px;color:var(--muted);font-size:12px; }
+.chat-box { height:290px;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:3px 1px 13px; }
+.message { max-width:92%;padding:12px 14px;border-radius:13px;white-space:pre-wrap;overflow-wrap:anywhere; }
+.message.bot { align-self:flex-start;background:#f2f5fc;color:#293650;border-bottom-left-radius:4px; }
+.message.user { align-self:flex-end;background:var(--blue);color:white;border-bottom-right-radius:4px; }
+.chat-form { display:flex;gap:8px;border:1px solid var(--line);border-radius:13px;padding:6px;background:#fff; }
+.chat-form input { min-width:0;flex:1;border:0;outline:0;padding:9px;background:transparent; }
+.primary { background:var(--blue);color:white;border:0;border-radius:10px;padding:10px 15px;font-weight:650; }
+.primary:disabled { opacity:.55;cursor:wait; }
+.hint { color:var(--muted);font-size:11px;margin:10px 0 0; }
+.upload-zone { border:1.5px dashed #cbd5ed;border-radius:14px;background:#fafbff;padding:22px 12px;text-align:center; }
+.upload-icon { font-size:28px;margin-bottom:7px; }
+.upload-zone strong { display:block;font-size:13px; }
+.upload-zone p { color:var(--muted);font-size:11px;margin:5px 0 14px; }
+.upload-zone input { max-width:100%;font-size:11px; }
+.upload-result { margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:230px;overflow:auto;font-size:12px;color:#44516b; }
+.safety { margin-top:17px;background:#fff8e8;border:1px solid #f4e4b8;color:#72551a;padding:14px 16px;border-radius:13px;font-size:12px; }
+.safety strong { display:block;margin-bottom:4px; }
+footer { margin-top:25px;text-align:center;color:#98a1b2;font-size:11px; }
+.status { font-size:11px;color:var(--muted);margin-top:8px; }
+@media(max-width:900px) {
+ .app { grid-template-columns:1fr; }
+ .sidebar { padding:13px 16px;border-right:0;border-bottom:1px solid var(--line);gap:12px; }
+ .nav-label,.side-note { display:none; }
+ .nav { display:flex;overflow-x:auto; }
+ .nav button { white-space:nowrap;padding:9px 11px; }
+ main { padding-top:20px; }
+}
+@media(max-width:650px) {
+ .stats { grid-template-columns:1fr; }
+ .content-grid { grid-template-columns:1fr; }
+ .hero-symbol { display:none; }
+ .hero { padding:21px; }
+ .local-pill { display:none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">V</div>
+      <div><h2>Vigil Healthcare</h2><p>AI HEALTH COMPANION</p></div>
+    </div>
+    <div class="nav-label">WORKSPACE</div>
+    <nav class="nav">
+      <button class="active" data-target="overview"><span class="ico">⌂</span>Overview</button>
+      <button data-target="assistant"><span class="ico">✳</span>AI Assistant</button>
+      <button data-target="reports"><span class="ico">▤</span>Medical Reports</button>
+    </nav>
+    <div class="side-note">
+      <strong>🔒 Privacy first</strong>
+      <p>Use fictional data for your demo. Avoid uploading identifiable medical records until privacy and security controls are implemented.</p>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Your health, understood</div>
+        <h1>Health Overview</h1>
+        <p class="subtitle">Understand health information with a little more clarity.</p>
+      </div>
+      <div class="local-pill"><span class="dot"></span>Local development</div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <h2>A clearer picture of your health.</h2>
+        <p>Ask health questions, explore medical information, and extract text from your reports in one place.</p>
+      </div>
+      <div class="hero-symbol">✚</div>
+    </section>
+
+    <div class="section-title"><h2>Your workspace</h2><span>Demo overview · No personal health data</span></div>
+    <section class="stats">
+      <article class="card">
+        <div class="stat-top"><span>AI Assistant</span><span class="stat-icon">✳</span></div>
+        <div class="stat-value">Ready to ask</div><div class="stat-help">Connects to your local medical knowledge API</div>
+      </article>
+      <article class="card">
+        <div class="stat-top"><span>Report analysis</span><span class="stat-icon">▤</span></div>
+        <div class="stat-value">PDF upload</div><div class="stat-help">Extract report text for review</div>
+      </article>
+      <article class="card">
+        <div class="stat-top"><span>Health score</span><span class="stat-icon">♡</span></div>
+        <div class="stat-value">Not calculated</div><div class="stat-help">No validated score or health measurements supplied</div>
+      </article>
+    </section>
+
+    <div class="section-title"><h2>Explore Vigil</h2><span>Prototype features</span></div>
+    <section class="content-grid">
+      <article class="card" id="assistant">
+        <h2 class="panel-title">✳ AI Health Assistant</h2>
+        <p class="panel-subtitle">Ask general health questions. Responses are informational, not a diagnosis.</p>
+        <div class="chat-box" id="chatBox" aria-live="polite">
+          <div class="message bot">Welcome to Vigil Healthcare AI. You can ask a general health question or ask me to explain a medical term. For urgent or severe symptoms, seek medical care immediately.</div>
+        </div>
+        <form class="chat-form" id="chatForm">
+          <input id="question" maxlength="1500" placeholder="Ask a health question..." autocomplete="off" required>
+          <button class="primary" id="sendButton" type="submit">Send</button>
+        </form>
+        <p class="hint">Please do not enter names, phone numbers, addresses, or other identifying information.</p>
+        <div class="status" id="chatStatus"></div>
+      </article>
+
+      <article class="card" id="reports">
+        <h2 class="panel-title">▤ Medical Report Reader</h2>
+        <p class="panel-subtitle">Extract text from a text-based PDF. Scanned PDFs may need OCR.</p>
+        <div class="upload-zone">
+          <div class="upload-icon">📄</div>
+          <strong>Choose a medical report</strong>
+          <p>PDF only · Maximum 10 MB</p>
+          <input id="reportFile" type="file" accept=".pdf,application/pdf">
+          <div style="margin-top:14px"><button class="primary" id="uploadButton" type="button">Extract report text</button></div>
+        </div>
+        <div class="status" id="uploadStatus">The report upload API will be connected in the next setup step.</div>
+        <div class="upload-result" id="reportResult"></div>
+      </article>
+    </section>
+
+    <div class="safety">
+      <strong>Important medical safety notice</strong>
+      Vigil is a hackathon prototype, not a medical device or substitute for a qualified clinician. AI responses can be incorrect. Do not use this app alone to diagnose, change medication, or delay emergency care.
+    </div>
+    <footer>Vigil Healthcare AI · Prototype · For demonstration and educational use</footer>
+  </main>
+</div>
+<script>
+const chatBox = document.getElementById("chatBox");
+const chatForm = document.getElementById("chatForm");
+const questionInput = document.getElementById("question");
+const sendButton = document.getElementById("sendButton");
+const chatStatus = document.getElementById("chatStatus");
+
+function addMessage(text, role) {
+  const el = document.createElement("div");
+  el.className = "message " + role;
+  el.textContent = text;
+  chatBox.appendChild(el);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return el;
+}
+
+chatForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const question = questionInput.value.trim();
+  if (!question) return;
+
+  addMessage(question, "user");
+  questionInput.value = "";
+  sendButton.disabled = true;
+  chatStatus.textContent = "Thinking…";
+  const pending = addMessage("Checking the medical knowledge assistant…", "bot");
+
+  try {
+    const response = await fetch("/ask", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({question})
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || data.error || "Request failed");
+    pending.textContent =
+      data.answer || data.response || data.message ||
+      JSON.stringify(data, null, 2);
+    if (data.sources && Array.isArray(data.sources)) {
+      pending.textContent += "\n\nSources:\n" + data.sources.map(s =>
+        typeof s === "string" ? s : (s.title || s.source || s.url || JSON.stringify(s))
+      ).join("\n");
+    }
+    chatStatus.textContent = "Response received. Verify important health information with a clinician.";
+  } catch (error) {
+    pending.textContent = "I couldn't reach the assistant. Check that the Vigil API is running and that /ask is available. Details: " + error.message;
+    chatStatus.textContent = "Connection failed.";
+  } finally {
+    sendButton.disabled = false;
+    questionInput.focus();
+  }
+});
+
+document.querySelectorAll(".nav button").forEach(button => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+    button.classList.add("active");
+    const target = document.getElementById(button.dataset.target);
+    if (target) target.scrollIntoView({behavior:"smooth", block:"start"});
+    if (button.dataset.target === "overview") window.scrollTo({top:0,behavior:"smooth"});
+  });
+});
+
+document.getElementById("uploadButton").addEventListener("click", async () => {
+  const fileInput = document.getElementById("reportFile");
+  const status = document.getElementById("uploadStatus");
+  const result = document.getElementById("reportResult");
+  const file = fileInput.files[0];
+  result.textContent = "";
+
+  if (!file) {
+    status.textContent = "Choose a PDF file first.";
+    return;
+  }
+  if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+    status.textContent = "Please select a PDF file.";
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    status.textContent = "The file is larger than 10 MB. Choose a smaller PDF.";
+    return;
+  }
+
+  status.textContent = "Uploading and extracting text…";
+  const button = document.getElementById("uploadButton");
+  button.disabled = true;
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch("/analyze-report", {method:"POST",body:formData});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || data.error || "Upload failed");
+    result.textContent = data.extracted_text || data.text || data.message || JSON.stringify(data,null,2);
+    status.textContent = "Extraction complete. Extracted text is not a diagnosis.";
+  } catch (error) {
+    status.textContent = "Report endpoint is not connected yet, or the upload failed: " + error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
