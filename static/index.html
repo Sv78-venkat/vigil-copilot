@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vigil Healthcare AI</title>
+<title>Vigil Healthcare AI | Your Health Copilot</title>
 <style>
 :root {
   --bg:#f5f7fb; --panel:#ffffff; --ink:#17233c; --muted:#748099;
@@ -85,10 +85,262 @@ footer { margin-top:25px;text-align:center;color:#98a1b2;font-size:11px; }
  .hero { padding:21px; }
  .local-pill { display:none; }
 }
+
+/* VIGIL_AUTH_PATCH_V1 */
+.auth-wrap { max-width:520px; margin:24px auto; padding:24px; background:#fff;
+  border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); }
+.auth-wrap h2 { margin:0 0 6px; }
+.auth-wrap p { color:var(--muted); }
+.auth-wrap input { width:100%; padding:12px; margin:6px 0 12px;
+  border:1px solid var(--line); border-radius:9px; }
+.auth-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.auth-wrap button { padding:10px 13px; border:0; border-radius:9px;
+  background:var(--blue); color:white; }
+.auth-wrap button.secondary { background:#edf1ff; color:#2948bd; }
+.auth-status { overflow-wrap:anywhere; margin-top:12px; }
+#vigilApp { display:none; }
+
+
+
+/* VIGIL_PRO_DESIGN_V1 */
+:root {
+  --vigil-ink: #142c3c;
+  --vigil-muted: #718394;
+  --vigil-teal: #087f83;
+  --vigil-teal-dark: #06676e;
+  --vigil-line: #e2eaf0;
+  --vigil-bg: #f4f8fa;
+  --vigil-white: #ffffff;
+}
+* { box-sizing: border-box; }
+body {
+  color: var(--vigil-ink);
+  background: var(--vigil-bg);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; transition: background .18s ease, transform .18s ease, box-shadow .18s ease; }
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 3px solid #72d4d0;
+  outline-offset: 2px;
+}
+.auth-wrap {
+  width: min(1160px, calc(100% - 36px));
+  max-width: 1160px;
+  min-height: min(740px, calc(100vh - 48px));
+  margin: 24px auto;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1.03fr .97fr;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e1e9ee;
+  border-radius: 26px;
+  box-shadow: 0 24px 80px rgba(23, 53, 72, .12);
+}
+.auth-brand-panel {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(28px, 4vw, 54px);
+  color: #f2ffff;
+  background:
+    radial-gradient(ellipse at 12% 92%, rgba(28, 182, 170, .22), transparent 42%),
+    radial-gradient(ellipse at 100% 0%, rgba(70, 138, 174, .22), transparent 42%),
+    linear-gradient(145deg, #102e42 0%, #123f50 58%, #075a60 100%);
+}
+.vigil-brand { display:flex; align-items:center; gap:12px; font-size:19px; font-weight:750; letter-spacing:-.5px; }
+.vigil-logo {
+  width:43px; height:43px; display:grid; place-items:center;
+  border:1px solid rgba(155,240,229,.4); border-radius:14px;
+  color:#8de5d9; background:rgba(255,255,255,.07);
+}
+.vigil-logo svg { width:35px; height:35px; }
+.brand-light { color:#a5d9d8; font-weight:500; }
+.auth-brand-copy { margin:auto 0; padding:48px 0 38px; }
+.eyebrow { display:inline-flex; align-items:center; gap:9px; font-size:10px; font-weight:800; letter-spacing:1.65px; }
+.auth-brand-panel .eyebrow { color:#a7e6df; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:#64e2bc; box-shadow:0 0 0 4px rgba(100,226,188,.12); }
+.auth-brand-copy h1 { margin:24px 0 18px; color:#fff; font-size:clamp(30px,3.4vw,45px); line-height:1.13; letter-spacing:-1.7px; }
+.auth-brand-copy h1 span { color:#82ded4; }
+.auth-brand-copy > p { max-width:420px; color:#c2d7df; font-size:14px; line-height:1.85; }
+.auth-feature { display:flex; gap:14px; align-items:center; margin-top:23px; }
+.feature-icon { flex:0 0 39px; width:39px; height:39px; display:grid; place-items:center; border:1px solid rgba(196,245,238,.18); border-radius:12px; color:#9ce8dc; background:rgba(255,255,255,.06); font-size:21px; }
+.auth-feature strong, .auth-feature small { display:block; }
+.auth-feature strong { font-size:13px; font-weight:700; }
+.auth-feature small { margin-top:4px; color:#b9d0d9; font-size:11px; line-height:1.5; }
+.auth-disclaimer { color:#a9c3ce; font-size:10px; line-height:1.7; max-width:420px; }
+.auth-form-panel { display:flex; align-items:center; justify-content:center; padding:clamp(24px,4vw,55px); }
+.auth-form-inner { width:100%; max-width:385px; }
+.form-eyebrow { color:var(--vigil-teal); }
+.auth-form-inner h2 { margin:14px 0 7px; color:#173449; font-size:29px; letter-spacing:-1px; }
+.auth-subtitle { margin:0 0 27px; color:#7a8c99; font-size:13px; line-height:1.6; }
+.auth-field { margin:0 0 15px; }
+.auth-field label { display:block; margin-bottom:7px; color:#314b5d; font-size:12px; font-weight:700; }
+.auth-wrap .auth-field input {
+  display:block; width:100%; min-height:46px; margin:0; padding:12px 14px;
+  border:1px solid #dce6ec; border-radius:10px; color:#19394c;
+  background:#fbfdfe; font-size:13px; transition:border .2s, box-shadow .2s;
+}
+.auth-wrap .auth-field input:focus { border-color:#37a6a1; box-shadow:0 0 0 3px rgba(8,127,131,.09); outline:none; }
+.auth-wrap .auth-field input::placeholder { color:#a2b0ba; }
+.auth-actions { display:flex; flex-direction:column; gap:9px; }
+.auth-wrap .auth-actions button, .auth-wrap .phone-button, .auth-wrap .verify-button {
+  width:100%; min-height:45px; padding:11px 15px; border-radius:10px;
+  font-size:12px; font-weight:750;
+}
+.auth-wrap #vigilLogin, .auth-wrap .phone-button {
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  color:white; background:linear-gradient(100deg,#087e83,#0c9891);
+  box-shadow:0 6px 15px rgba(8,127,131,.16);
+}
+.auth-wrap #vigilLogin:hover, .auth-wrap .phone-button:hover { background:var(--vigil-teal-dark); transform:translateY(-1px); }
+.auth-wrap .auth-actions .secondary { border:1px solid #dce7ec; color:#335466; background:#fff; }
+.auth-wrap .auth-actions .secondary:hover { background:#f4f9fa; }
+.auth-divider { display:flex; align-items:center; gap:12px; margin:21px 0; color:#9aaab4; font-size:9px; font-weight:800; letter-spacing:1px; }
+.auth-divider:before, .auth-divider:after { content:""; flex:1; height:1px; background:#e8eef2; }
+.field-hint { display:block; margin-top:6px; color:#8b9aa5; font-size:10px; }
+.auth-wrap .phone-button { border:1px solid #d4e8e6; color:#087b7d; background:#f0f9f8; box-shadow:none; }
+.auth-wrap .phone-button:hover { background:#e1f4f1; }
+.otp-field { margin-top:15px; }
+.auth-wrap .verify-button { border:1px solid #dce6ec; color:#355468; background:#fff; }
+.auth-wrap .verify-button:hover { background:#f4f8fa; }
+.auth-status { min-height:18px; margin:14px 0 0; color:#637987; font-size:11px; line-height:1.6; overflow-wrap:anywhere; }
+.auth-privacy { display:flex; gap:8px; margin-top:22px; padding-top:16px; border-top:1px solid #edf1f4; color:#8797a2; font-size:10px; line-height:1.6; }
+.auth-privacy span { color:#078883; font-size:16px; }
+.auth-mobile-brand { display:none; }
+
+/* Shared app styling: keep the existing HTML and feature handlers. */
+.app { gap:24px !important; }
+.sidebar {
+  border:1px solid #e4ebef !important;
+  border-radius:18px !important;
+  background:#fff !important;
+  box-shadow:0 8px 28px rgba(23,53,72,.045) !important;
+}
+.nav button { border-radius:10px !important; transition:all .18s ease; }
+.nav button:hover { background:#edf8f7 !important; color:#087f83 !important; }
+.card, .panel, .stat-card, .metric-card {
+  border:1px solid #e4ebef !important;
+  border-radius:17px !important;
+  background:#fff !important;
+  box-shadow:0 8px 28px rgba(23,53,72,.045) !important;
+}
+.card { padding:clamp(17px,2.2vw,25px) !important; }
+button.primary, .primary {
+  border-radius:10px !important;
+  background:linear-gradient(100deg,#087e83,#0c9891) !important;
+  box-shadow:0 5px 14px rgba(8,127,131,.13);
+}
+button.primary:hover, .primary:hover { filter:brightness(.96); transform:translateY(-1px); }
+input:not(.auth-wrap input), textarea, select {
+  border-radius:10px;
+}
+.chat-form { gap:10px; }
+@media (max-width:850px) {
+  .auth-wrap { grid-template-columns:1fr; width:min(560px,calc(100% - 24px)); margin:12px auto; min-height:0; border-radius:20px; }
+  .auth-brand-panel { display:none; }
+  .auth-mobile-brand { display:flex; align-items:center; gap:10px; margin-bottom:25px; color:#17394b; font-size:14px; }
+  .auth-mobile-brand .vigil-logo { color:#087f83; border-color:#d8eeeb; background:#eff9f8; }
+  .auth-form-panel { padding:28px 23px 30px; }
+  .auth-form-inner h2 { font-size:26px; }
+  .app { grid-template-columns:1fr !important; }
+  .sidebar { width:100% !important; }
+}
+@media (max-width:480px) {
+  .auth-wrap { width:100%; margin:0; border:0; border-radius:0; min-height:100vh; }
+  .auth-form-panel { align-items:flex-start; padding:25px 21px; }
+  .auth-form-inner { margin:auto 0; }
+}
+
 </style>
 </head>
 <body>
-<div class="app">
+
+
+<section class="auth-wrap" id="vigilAuth">
+  <div class="auth-brand-panel">
+    <div class="vigil-brand">
+      <span class="vigil-logo" aria-hidden="true">
+        <svg viewBox="0 0 48 48" fill="none">
+          <path d="M24 4 41 11V23C41 33 34 40 24 44 14 40 7 33 7 23V11L24 4Z"
+            fill="currentColor" fill-opacity=".15" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 24H19L23 15L29 33L33 24H37"
+            stroke="currentColor" stroke-width="2.8"
+            stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span>Vigil<span class="brand-light"> Healthcare AI</span></span>
+    </div>
+
+    <div class="auth-brand-copy">
+      <span class="eyebrow"><span class="status-dot"></span> YOUR HEALTH, IN FOCUS</span>
+      <h1>Understand your health.<br><span>With greater clarity.</span></h1>
+      <p>Your personal healthcare copilot to help you explore medical reports,
+      understand health information and prepare better questions for your clinician.</p>
+
+      <div class="auth-feature">
+        <span class="feature-icon">✳</span>
+        <div><strong>Report insights</strong><small>Make medical information easier to understand.</small></div>
+      </div>
+      <div class="auth-feature">
+        <span class="feature-icon">⌁</span>
+        <div><strong>Speak your language</strong><small>Designed for English and Telugu conversations.</small></div>
+      </div>
+      <div class="auth-feature">
+        <span class="feature-icon">◈</span>
+        <div><strong>Your health journey</strong><small>Access your account across supported devices.</small></div>
+      </div>
+    </div>
+
+    <div class="auth-disclaimer">
+      Vigil supports health education and report understanding. It does not replace
+      professional medical advice or emergency care.
+    </div>
+  </div>
+
+  <div class="auth-form-panel">
+    <div class="auth-mobile-brand">
+      <span class="vigil-logo" aria-hidden="true">✚</span>
+      <strong>Vigil Healthcare AI</strong>
+    </div>
+
+    <div class="auth-form-inner">
+      <span class="eyebrow form-eyebrow">YOUR PERSONAL HEALTH COPILOT</span>
+      <h2>Welcome to Vigil</h2>
+      <p class="auth-subtitle">Sign in or create an account to continue.</p>
+
+      <div class="auth-field">
+        <label for="vigilEmail">Email address</label>
+        <input id="vigilEmail" type="email" autocomplete="email"
+          placeholder="you@example.com">
+      </div>
+
+      <div class="auth-field">
+        <label for="vigilPassword">Password</label>
+        <input id="vigilPassword" type="password"
+          autocomplete="current-password" minlength="6"
+          placeholder="Enter your password">
+      </div>
+
+      <div class="auth-actions auth-primary-actions">
+        <button type="button" id="vigilLogin">Sign in <span aria-hidden="true">→</span></button>
+        <button type="button" id="vigilSignup" class="secondary">Create account</button>
+      </div>
+
+      <p class="auth-status" id="vigilAuthStatus" role="status"
+        aria-live="polite">Checking secure sign-in configuration…</p>
+
+      <div class="auth-privacy">
+        <span aria-hidden="true">◇</span>
+        Use your own account and keep your health information private.
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<div class="app" id="vigilApp">
   <aside class="sidebar">
     <div class="brand">
       <div class="logo">V</div>
@@ -148,6 +400,20 @@ footer { margin-top:25px;text-align:center;color:#98a1b2;font-size:11px; }
         <div class="chat-box" id="chatBox" aria-live="polite">
           <div class="message bot">Welcome to Vigil Healthcare AI. You can ask a general health question or ask me to explain a medical term. For urgent or severe symptoms, seek medical care immediately.</div>
         </div>
+        <div id="voiceControls" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0;">
+          <button type="button" class="primary" id="voiceButton" style="background:#087f83;">🎙 Speak</button>
+          <label for="voiceLanguage" style="font-size:13px;">Language</label>
+          <select id="voiceLanguage" aria-label="Voice language" style="max-width:150px;">
+            <option value="en-IN">English (India)</option>
+            <option value="te-IN">తెలుగు (Telugu)</option>
+          </select>
+          <label style="display:flex;gap:6px;align-items:center;font-size:13px;">
+            <input type="checkbox" id="voiceReplies" checked>
+            Read answers aloud
+          </label>
+          <button type="button" id="stopVoiceButton">Stop audio</button>
+        </div>
+        <p class="hint" id="voiceHint">Press Speak, allow microphone access, and ask your question.</p>
         <form class="chat-form" id="chatForm">
           <input id="question" maxlength="1500" placeholder="Ask a health question..." autocomplete="off" required>
           <button class="primary" id="sendButton" type="submit">Send</button>
@@ -168,6 +434,13 @@ footer { margin-top:25px;text-align:center;color:#98a1b2;font-size:11px; }
         </div>
         <div class="status" id="uploadStatus">The report upload API will be connected in the next setup step.</div>
         <div class="upload-result" id="reportResult"></div>
+
+        <div id="reportHistory" style="margin-top:24px;padding-top:20px;border-top:1px solid #e4ebef">
+          <h3 style="margin:0 0 8px;color:#173449">Report History</h3>
+          <p id="reportHistoryStatus" class="status" role="status" aria-live="polite">Sign in to view your saved reports.</p>
+          <div id="reportHistoryList"></div>
+          <button id="refreshReportHistory" class="primary" type="button" style="margin-top:12px">Refresh history</button>
+        </div>
       </article>
     </section>
 
@@ -178,12 +451,444 @@ footer { margin-top:25px;text-align:center;color:#98a1b2;font-size:11px; }
     <footer>Vigil Healthcare AI · Prototype · For demonstration and educational use</footer>
   </main>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/static/config.js"></script>
+<script src="/static/uiux-nav-patch.js"></script>
 <script>
+
+// VIGIL_AUTH_PATCH_V1 — Supabase frontend authentication.
+const vigilAuthPanel = document.getElementById("vigilAuth");
+const vigilApp = document.querySelector(".app");
+const vigilAuthStatus = document.getElementById("vigilAuthStatus");
+let vigilSupabase = null;
+
+function vigilSetAuthStatus(message) {
+  vigilAuthStatus.textContent = message;
+}
+
+function vigilShowSignedIn(session) {
+  const signedIn = Boolean(session && session.user);
+  vigilAuthPanel.style.display = signedIn ? "none" : "block";
+  vigilApp.id = "vigilApp";
+  vigilApp.style.display = signedIn ? "grid" : "none";
+
+  let badge = document.getElementById("vigilSessionBadge");
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.id = "vigilSessionBadge";
+    badge.style.cssText =
+      "position:sticky;top:0;z-index:20;background:#edf1ff;padding:10px 16px;" +
+      "display:flex;gap:12px;justify-content:flex-end;align-items:center;flex-wrap:wrap";
+    vigilApp.before(badge);
+  }
+  badge.style.display = signedIn ? "flex" : "none";
+  if (signedIn) {
+    badge.replaceChildren();
+    const label = document.createElement("span");
+    label.textContent = "Signed in: " + (session.user.email || session.user.phone || "Vigil user");
+    const logout = document.createElement("button");
+    logout.type = "button";
+    logout.textContent = "Sign out";
+    logout.addEventListener("click", async () => {
+      const { error } = await vigilSupabase.auth.signOut();
+      vigilSetAuthStatus(error ? error.message : "Signed out.");
+    });
+    badge.append(label, logout);
+  }
+}
+
+async function vigilInitAuth() {
+  if (!window.supabase || !window.VIGIL_CONFIG ||
+      !window.VIGIL_CONFIG.SUPABASE_URL ||
+      !window.VIGIL_CONFIG.SUPABASE_PUBLISHABLE_KEY) {
+    vigilSetAuthStatus("Supabase configuration or SDK unavailable. Check config.js and internet access.");
+    return;
+  }
+
+  try {
+    vigilSupabase = window.supabase.createClient(
+      window.VIGIL_CONFIG.SUPABASE_URL,
+      window.VIGIL_CONFIG.SUPABASE_PUBLISHABLE_KEY,
+      { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }
+    );
+
+    const { data, error } = await vigilSupabase.auth.getSession();
+    if (error) throw error;
+    vigilShowSignedIn(data.session);
+
+    if (data.session) {
+      void vigilLoadReportHistory();
+    } else {
+      vigilClearReportHistory();
+    }
+
+    vigilSupabase.auth.onAuthStateChange((_event, session) => {
+      vigilShowSignedIn(session);
+      if (session) {
+        window.setTimeout(() => { void vigilLoadReportHistory(); }, 0);
+      } else {
+        vigilClearReportHistory();
+      }
+    });
+
+    document.getElementById("vigilLogin").addEventListener("click", async () => {
+      const email = document.getElementById("vigilEmail").value.trim();
+      const password = document.getElementById("vigilPassword").value;
+      if (!email || !password) return vigilSetAuthStatus("Enter your email and password.");
+      vigilSetAuthStatus("Signing in…");
+      const { error } = await vigilSupabase.auth.signInWithPassword({ email, password });
+      vigilSetAuthStatus(error ? error.message : "Signed in.");
+    });
+
+    document.getElementById("vigilSignup").addEventListener("click", async () => {
+      const email = document.getElementById("vigilEmail").value.trim();
+      const password = document.getElementById("vigilPassword").value;
+      if (!email || password.length < 6) {
+        return vigilSetAuthStatus("Enter a valid email and a password of at least 6 characters.");
+      }
+      vigilSetAuthStatus("Creating account…");
+      const { data, error } = await vigilSupabase.auth.signUp({
+        email, password,
+        options: { data: { full_name: "" } }
+      });
+      if (error) return vigilSetAuthStatus(error.message);
+      vigilSetAuthStatus(
+        data.session ? "Account created and signed in." :
+        "Account created. Check your email to confirm, then sign in."
+      );
+    });
+
+    vigilSetAuthStatus(data.session ? "Session restored." : "Sign in or create an account to continue.");
+  } catch (error) {
+    vigilSetAuthStatus("Supabase initialization failed: " + error.message);
+  }
+}
+
+vigilInitAuth();
+
 const chatBox = document.getElementById("chatBox");
 const chatForm = document.getElementById("chatForm");
 const questionInput = document.getElementById("question");
 const sendButton = document.getElementById("sendButton");
+
+async function vigilAuthorizationHeaders(extraHeaders = {}) {
+  if (!vigilSupabase) throw new Error("Authentication is not initialized. Please sign in again.");
+  const { data, error } = await vigilSupabase.auth.getSession();
+  if (error || !data.session) throw new Error("Your session has expired. Please sign in again.");
+  return { ...extraHeaders, Authorization: "Bearer " + data.session.access_token };
+}
+
+function vigilClearReportHistory(message = "Sign in to view your saved reports.") {
+  const status = document.getElementById("reportHistoryStatus");
+  const list = document.getElementById("reportHistoryList");
+  if (status) status.textContent = message;
+  if (list) list.replaceChildren();
+}
+
+async function vigilLoadReportHistory() {
+  const status = document.getElementById("reportHistoryStatus");
+  const list = document.getElementById("reportHistoryList");
+  const refreshButton = document.getElementById("refreshReportHistory");
+  if (!status || !list) return;
+
+  status.textContent = "Loading saved reports...";
+  list.replaceChildren();
+  if (refreshButton) refreshButton.disabled = true;
+
+  try {
+    const response = await fetch("/reports", {
+      method: "GET",
+      headers: await vigilAuthorizationHeaders()
+    });
+
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error("The server returned an invalid response.");
+    }
+
+    if (!response.ok) {
+      throw new Error(data.detail || data.error || "Could not load report history.");
+    }
+    if (!data || !Array.isArray(data.reports)) {
+      throw new Error("The report history response has an unexpected format.");
+    }
+    if (data.reports.length === 0) {
+      status.textContent = "No saved reports yet. Upload a PDF to get started.";
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    for (const report of data.reports) {
+      const card = document.createElement("article");
+      card.style.cssText =
+        "padding:14px;margin:10px 0;border:1px solid #e4ebef;" +
+        "border-radius:12px;background:#fff;overflow-wrap:anywhere";
+
+      const title = document.createElement("strong");
+      title.textContent = report.filename || "Medical report";
+      title.style.cssText = "display:block;color:#173449;font-size:14px";
+
+      const details = document.createElement("p");
+      details.style.cssText = "margin:7px 0;color:#637987;font-size:12px";
+
+      let dateText = "Date unavailable";
+      if (report.uploaded_at) {
+        const date = new Date(report.uploaded_at);
+        if (!Number.isNaN(date.getTime())) dateText = date.toLocaleString();
+      }
+
+      details.textContent =
+        "Status: " + String(report.status || "Unknown") +
+        " ? Uploaded: " + dateText;
+      card.append(title, details);
+
+      const actions = document.createElement("div");
+      actions.style.cssText =
+        "display:flex;flex-wrap:wrap;gap:8px;margin-top:12px";
+
+      for (const action of [
+        { type: "view", label: "View Original PDF" },
+        { type: "download", label: "Download Original PDF" }
+      ]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "primary";
+        button.textContent = action.label;
+        button.dataset.reportAction = action.type;
+        button.dataset.reportId = String(report.id || "");
+        button.dataset.filename = String(report.filename || "medical_report.pdf");
+        button.disabled = !report.id;
+        button.style.cssText = "padding:9px 12px;font-size:12px;border:0";
+        actions.append(button);
+      }
+
+      card.append(actions);
+
+      if (report.analysis_summary) {
+        const summary = document.createElement("p");
+        summary.style.cssText =
+          "margin:8px 0 0;color:#355468;font-size:13px;line-height:1.6";
+        summary.textContent = typeof report.analysis_summary === "string"
+          ? report.analysis_summary
+          : JSON.stringify(report.analysis_summary);
+        card.append(summary);
+      }
+
+      fragment.append(card);
+    }
+
+    list.replaceChildren(fragment);
+    status.textContent = data.reports.length +
+      (data.reports.length === 1 ? " saved report found." : " saved reports found.");
+  } catch (error) {
+    status.textContent = "Could not load report history: " + error.message;
+  } finally {
+    if (refreshButton) refreshButton.disabled = false;
+  }
+}
+
+
+// Fetch original PDFs using the current signed-in session.
+const reportHistoryList = document.getElementById("reportHistoryList");
+
+if (reportHistoryList) {
+  reportHistoryList.addEventListener("click", async (event) => {
+    const button = event.target instanceof Element
+      ? event.target.closest("button[data-report-action]")
+      : null;
+
+    if (!button || !reportHistoryList.contains(button)) return;
+
+    const reportId = button.dataset.reportId;
+    const isDownload = button.dataset.reportAction === "download";
+    const status = document.getElementById("reportHistoryStatus");
+
+    if (!reportId) {
+      if (status) status.textContent = "This report has no valid record ID.";
+      return;
+    }
+
+    let pdfWindow = null;
+    if (!isDownload) {
+      pdfWindow = window.open("about:blank", "_blank");
+      if (!pdfWindow) {
+        if (status) status.textContent =
+          "Allow pop-ups for this site, then try viewing the PDF again.";
+        return;
+      }
+    }
+
+    button.disabled = true;
+    let objectUrl = null;
+
+    try {
+      const endpoint =
+        "/reports/" + encodeURIComponent(reportId) + "/original" +
+        (isDownload ? "?download=true" : "");
+
+      const response = await fetch(endpoint, {
+        method: "GET",
+        headers: await vigilAuthorizationHeaders()
+      });
+
+      if (!response.ok) {
+        let message = "Could not retrieve the original PDF.";
+        try {
+          const data = await response.json();
+          message = data.detail || message;
+        } catch {}
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      if (!blob.size || !(await blob.slice(0, 5).text()).startsWith("%PDF-")) {
+        throw new Error("The server did not return a valid PDF.");
+      }
+
+      objectUrl = URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" })
+      );
+
+      if (isDownload) {
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = button.dataset.filename || "medical_report.pdf";
+        document.body.append(link);
+        link.click();
+        link.remove();
+
+        if (status) status.textContent = "Original PDF download started.";
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+      } else {
+        pdfWindow.document.open();
+pdfWindow.document.write(`
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <title>Original Medical Report</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        html, body { margin: 0; width: 100%; height: 100%; }
+        iframe { width: 100%; height: 100%; border: 0; }
+      </style>
+    </head>
+    <body>
+      <iframe title="Original Medical Report"></iframe>
+    </body>
+  </html>
+`);
+pdfWindow.document.close();
+pdfWindow.document.querySelector("iframe").src = objectUrl;
+        if (status) status.textContent = "Original PDF opened in a new tab.";
+        // Keep the view URL alive until that tab is closed.
+      }
+    } catch (error) {
+      if (pdfWindow && !pdfWindow.closed) pdfWindow.close();
+      if (status) {
+        status.textContent = "Could not open the original report: " + error.message;
+      }
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
+const refreshReportHistory = document.getElementById("refreshReportHistory");
+if (refreshReportHistory) {
+  refreshReportHistory.addEventListener("click", () => {
+    void vigilLoadReportHistory();
+  });
+}
+
 const chatStatus = document.getElementById("chatStatus");
+
+// Browser speech controls.
+const voiceButton = document.getElementById("voiceButton");
+const voiceLanguage = document.getElementById("voiceLanguage");
+const voiceReplies = document.getElementById("voiceReplies");
+const stopVoiceButton = document.getElementById("stopVoiceButton");
+const voiceHint = document.getElementById("voiceHint");
+const BrowserSpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let voiceRecognition = null;
+let voiceListening = false;
+
+function speakVigilAnswer(text) {
+  if (!voiceReplies.checked || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = voiceLanguage.value;
+  utterance.rate = 0.95;
+  utterance.onerror = () => {
+    voiceHint.textContent = "Audio playback failed. Please read the answer on screen.";
+  };
+  window.speechSynthesis.speak(utterance);
+}
+
+voiceButton.addEventListener("click", () => {
+  if (!BrowserSpeechRecognition) {
+    voiceHint.textContent =
+      "Speech recognition is unavailable in this browser. Try current Google Chrome or type your question.";
+    return;
+  }
+
+  if (voiceListening && voiceRecognition) {
+    voiceRecognition.stop();
+    return;
+  }
+
+  voiceRecognition = new BrowserSpeechRecognition();
+  voiceRecognition.lang = voiceLanguage.value;
+  voiceRecognition.continuous = false;
+  voiceRecognition.interimResults = false;
+  voiceRecognition.maxAlternatives = 1;
+
+  voiceRecognition.onstart = () => {
+    voiceListening = true;
+    voiceButton.textContent = "🎙 Listening…";
+    voiceHint.textContent = "Listening. Speak clearly, then wait for Vigil.";
+    chatStatus.textContent = "Listening for your question…";
+  };
+
+  voiceRecognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript.trim();
+    if (!transcript) {
+      voiceHint.textContent = "No speech detected. Please try again.";
+      return;
+    }
+    questionInput.value = transcript.slice(0, 1500);
+    voiceHint.textContent = "Recognized: " + questionInput.value;
+    chatForm.requestSubmit();
+  };
+
+  voiceRecognition.onerror = (event) => {
+    voiceHint.textContent = event.error === "not-allowed"
+      ? "Microphone permission denied. Allow microphone access in Chrome settings."
+      : "Voice input error: " + event.error + ". You can type your question.";
+  };
+
+  voiceRecognition.onend = () => {
+    voiceListening = false;
+    voiceButton.textContent = "🎙 Speak";
+  };
+
+  try {
+    voiceRecognition.start();
+  } catch (error) {
+    voiceHint.textContent = "Could not start the microphone. Please try again.";
+  }
+});
+
+stopVoiceButton.addEventListener("click", () => {
+  if (voiceRecognition && voiceListening) voiceRecognition.stop();
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  voiceHint.textContent = "Audio stopped.";
+});
 
 function addMessage(text, role) {
   const el = document.createElement("div");
@@ -208,7 +913,7 @@ chatForm.addEventListener("submit", async (event) => {
   try {
     const response = await fetch("/ask", {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
+      headers: await vigilAuthorizationHeaders({"Content-Type": "application/json"}),
       body: JSON.stringify({question})
     });
     const data = await response.json();
@@ -221,6 +926,7 @@ chatForm.addEventListener("submit", async (event) => {
         typeof s === "string" ? s : (s.title || s.source || s.url || JSON.stringify(s))
       ).join("\n");
     }
+    speakVigilAnswer(pending.textContent);
     chatStatus.textContent = "Response received. Verify important health information with a clinician.";
   } catch (error) {
     pending.textContent = "I couldn't reach the assistant. Check that the Vigil API is running and that /ask is available. Details: " + error.message;
@@ -241,6 +947,73 @@ document.querySelectorAll(".nav button").forEach(button => {
   });
 });
 
+function renderReportMarkdown(container, markdown) {
+  container.replaceChildren();
+
+  // Treat model output as text; never interpret it as HTML.
+  const source = String(markdown || "").replace(/\\\*/g, "*");
+  const lines = source.split(/\r?\n/);
+  let list = null;
+
+  function closeList() {
+    list = null;
+  }
+
+  function appendInline(parent, text) {
+    const parts = String(text).split(/(\*\*[^*]+?\*\*)/g);
+
+    for (const part of parts) {
+      if (!part) continue;
+
+      if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+        const strong = document.createElement("strong");
+        strong.textContent = part.slice(2, -2);
+        parent.appendChild(strong);
+      } else {
+        parent.appendChild(document.createTextNode(part));
+      }
+    }
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      closeList();
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+
+    if (heading) {
+      closeList();
+      const level = heading[1].length;
+      const element = document.createElement("h" + (level + 2));
+      appendInline(element, heading[2]);
+      container.appendChild(element);
+      continue;
+    }
+
+    const bullet = line.match(/^[-*]\s+(.+)$/);
+
+    if (bullet) {
+      if (!list) {
+        list = document.createElement("ul");
+        container.appendChild(list);
+      }
+
+      const item = document.createElement("li");
+      appendInline(item, bullet[1]);
+      list.appendChild(item);
+      continue;
+    }
+
+    closeList();
+    const paragraph = document.createElement("p");
+    appendInline(paragraph, line);
+    container.appendChild(paragraph);
+  }
+}
 document.getElementById("uploadButton").addEventListener("click", async () => {
   const fileInput = document.getElementById("reportFile");
   const status = document.getElementById("uploadStatus");
@@ -267,11 +1040,15 @@ document.getElementById("uploadButton").addEventListener("click", async () => {
   try {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await fetch("/analyze-report", {method:"POST",body:formData});
+    const response = await fetch("/analyze-report", {method:"POST",headers:await vigilAuthorizationHeaders(),body:formData});
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || data.error || "Upload failed");
-    result.textContent = data.extracted_text || data.text || data.message || JSON.stringify(data,null,2);
+    renderReportMarkdown(result, data.analysis || data.text || data.extracted_text || data.message || JSON.stringify(data, null, 2));
     status.textContent = "Extraction complete. Extracted text is not a diagnosis.";
+    await vigilLoadReportHistory();
+    if (typeof window.vigilRefreshOverviewStats === "function") {
+      await window.vigilRefreshOverviewStats();
+    }
   } catch (error) {
     status.textContent = "Report endpoint is not connected yet, or the upload failed: " + error.message;
   } finally {
