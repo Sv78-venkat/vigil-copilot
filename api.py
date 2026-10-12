@@ -1,6 +1,7 @@
 
 import re
 import os
+import json
 import uuid
 from datetime import date, datetime, timezone
 from urllib.parse import quote
@@ -8,7 +9,11 @@ from io import BytesIO
 from pathlib import Path
 from threading import Lock
 
-import chromadb
+try:
+    import chromadb
+except ImportError:
+    chromadb = None
+
 import requests
 from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, Header
 from fastapi.responses import FileResponse, Response
@@ -39,6 +44,19 @@ MAX_DISTANCE = 0.95
 MAX_CONTEXT_CHARS = 12000
 MAX_ANSWER_TOKENS = 450
 OLLAMA_TIMEOUT_SECONDS = 180
+
+# Cloud/local AI provider configuration.
+# Keep Ollama as the default for existing local development.
+AI_PROVIDER = os.getenv("AI_PROVIDER", "ollama").strip().lower()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest").strip()
+GEMINI_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    f"{GEMINI_MODEL}:generateContent"
+)
+GEMINI_TIMEOUT_SECONDS = 120
+
 
 MAX_REPORT_BYTES = 10 * 1024 * 1024
 MAX_REPORT_PAGES = 100
@@ -110,20 +128,37 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ORIGINS",
+            "https://fantastic-queijadas-8a30ec.netlify.app,"
+            "http://127.0.0.1:8000,"
+            "http://localhost:8000",
+        ).split(",")
+        if origin.strip()
+    ],
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
-client = chromadb.PersistentClient(path=str(DB_DIR))
+# Local mode uses ChromaDB. Gemini cloud mode uses lightweight
+# keyword retrieval over data/medical_sources.json instead.
+if AI_PROVIDER == "ollama":
+    if chromadb is None:
+        raise RuntimeError(
+            "ChromaDB is required for local Ollama mode."
+        )
 
-collection = client.get_or_create_collection(
-    name="medical_knowledge",
-    metadata={
-        "description": "Medical reference passages",
-    },
-)
+    client = chromadb.PersistentClient(path=str(DB_DIR))
+    collection = client.get_or_create_collection(
+        name="medical_knowledge",
+        metadata={"description": "Medical reference passages"},
+    )
+else:
+    client = None
+    collection = None
 
 _embedding_model = None
 _model_lock = Lock()
@@ -561,8 +596,103 @@ def get_ollama_model_status():
         }
 
 
+
 def request_ollama(messages, num_predict=450):
-    """Send a chat request to the configured local Ollama model."""
+    """Send a chat request to the selected AI provider."""
+    if AI_PROVIDER == "gemini":
+        if not GEMINI_API_KEY:
+            raise HTTPException(
+                status_code=503,
+                detail="Gemini API key is not configured on the server.",
+            )
+
+        contents = []
+        system_instruction = None
+
+        for message in messages:
+            role = message.get("role", "user")
+            content = message.get("content", "")
+
+            if not isinstance(content, str):
+                continue
+
+            if role == "system":
+                system_instruction = content
+            elif role == "assistant":
+                contents.append({
+                    "role": "model",
+                    "parts": [{"text": content}],
+                })
+            else:
+                contents.append({
+                    "role": "user",
+                    "parts": [{"text": content}],
+                })
+
+        payload = {
+            "contents": contents,
+            "generationConfig": {
+                "maxOutputTokens": max(num_predict, 1024),
+            },
+        }
+
+        if system_instruction:
+            payload["systemInstruction"] = {
+                "parts": [{"text": system_instruction}],
+            }
+
+        response = requests.post(
+            GEMINI_URL,
+            headers={
+                "x-goog-api-key": GEMINI_API_KEY,
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=GEMINI_TIMEOUT_SECONDS,
+        )
+
+        response.raise_for_status()
+        result = response.json()
+
+
+        candidates = result.get("candidates", [])
+        answer = ""
+
+        if candidates:
+            parts = (
+                candidates[0]
+                .get("content", {})
+                .get("parts", [])
+            )
+            answer = "\n".join(
+                part.get("text", "")
+                for part in parts
+                if isinstance(part.get("text"), str)
+            )
+
+        if not answer.strip():
+            finish_reason = (
+                candidates[0].get("finishReason", "UNKNOWN")
+                if candidates
+                else "NO_CANDIDATE"
+            )
+
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Gemini returned no usable text. "
+                    f"Finish reason: {finish_reason}."
+                ),
+            )
+
+        return answer.strip()
+
+    if AI_PROVIDER != "ollama":
+        raise HTTPException(
+            status_code=503,
+            detail="Unsupported AI provider. Configure ollama or gemini.",
+        )
+
     response = requests.post(
         OLLAMA_URL,
         json={
@@ -730,36 +860,89 @@ def home():
 
 @app.get("/health")
 def health():
-    try:
-        indexed_chunks = collection.count()
-        database_ready = indexed_chunks > 0
-        database_error = None
+    database_error = None
 
-    except Exception:
+    if AI_PROVIDER == "gemini":
+        try:
+            data_path = BASE_DIR / "data" / "medical_sources.json"
+            records = json.loads(
+                data_path.read_text(encoding="utf-8-sig")
+            )
+            indexed_chunks = len(records) if isinstance(records, list) else 0
+            database_ready = indexed_chunks > 0
+        except (OSError, ValueError, TypeError):
+            indexed_chunks = 0
+            database_ready = False
+            database_error = (
+                "The medical reference data could not be read."
+            )
+
+        provider_connected = bool(GEMINI_API_KEY)
+        provider_model_available = bool(GEMINI_MODEL)
+        provider_error = (
+            None if provider_connected
+            else "Gemini API key is not configured."
+        )
+        ollama_connected = False
+        ollama_model_available = False
+        ollama_error = None
+
+    elif AI_PROVIDER == "ollama":
+        try:
+            indexed_chunks = collection.count()
+            database_ready = indexed_chunks > 0
+        except Exception:
+            indexed_chunks = 0
+            database_ready = False
+            database_error = (
+                "The medical knowledge database could not be read."
+            )
+
+        ollama = get_ollama_model_status()
+        provider_connected = ollama["connected"]
+        provider_model_available = ollama["model_available"]
+        provider_error = ollama["error"]
+        ollama_connected = ollama["connected"]
+        ollama_model_available = ollama["model_available"]
+        ollama_error = ollama["error"]
+
+    else:
         indexed_chunks = 0
         database_ready = False
-        database_error = (
-            "The medical knowledge database could not be read."
-        )
-
-    ollama = get_ollama_model_status()
+        provider_connected = False
+        provider_model_available = False
+        provider_error = "Unsupported AI provider."
+        ollama_connected = False
+        ollama_model_available = False
+        ollama_error = None
+        database_error = "Unsupported AI provider configuration."
 
     ready = (
         database_ready
-        and ollama["connected"]
-        and ollama["model_available"]
+        and provider_connected
+        and provider_model_available
     )
 
     return {
         "status": "ok" if ready else "needs_attention",
+        "ai_provider": AI_PROVIDER,
+        "ai_connected": provider_connected,
+        "ai_model_available": provider_model_available,
         "database_ready": database_ready,
         "indexed_chunks": indexed_chunks,
-        "ollama_connected": ollama["connected"],
-        "ollama_model_available": ollama["model_available"],
-        "embedding_model": EMBEDDING_MODEL,
-        "llm_model": OLLAMA_MODEL,
+        "ollama_connected": ollama_connected,
+        "ollama_model_available": ollama_model_available,
+        "embedding_model": (
+            EMBEDDING_MODEL if AI_PROVIDER == "ollama"
+            else "keyword-search (cloud)"
+        ),
+        "llm_model": (
+            GEMINI_MODEL if AI_PROVIDER == "gemini"
+            else OLLAMA_MODEL
+        ),
         "database_error": database_error,
-        "ollama_error": ollama["error"],
+        "provider_error": provider_error,
+        "ollama_error": ollama_error,
     }
 
 
@@ -803,45 +986,107 @@ def ask(
         )
 
     try:
-        count = collection.count()
+        if AI_PROVIDER == "gemini":
+            data_path = BASE_DIR / "data" / "medical_sources.json"
+            try:
+                records = json.loads(
+                    data_path.read_text(encoding="utf-8-sig")
+                )
+            except (OSError, ValueError) as exc:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Medical reference data is unavailable.",
+                ) from exc
 
-        if count == 0:
-            raise HTTPException(
-                status_code=503,
-                detail=(
-                    "The medical knowledge index is empty. "
-                    "Build it using scripts/build_index.py."
-                ),
+            if not isinstance(records, list) or not records:
+                raise HTTPException(
+                    status_code=503,
+                    detail="The medical reference data is empty.",
+                )
+
+            stopwords = {
+                "a", "an", "and", "are", "as", "at", "be", "by",
+                "can", "do", "does", "for", "from", "how", "i",
+                "in", "is", "it", "me", "my", "of", "on", "or",
+                "the", "to", "was", "what", "when", "where",
+                "which", "who", "why", "with", "you", "your",
+            }
+            query_terms = (
+                set(re.findall(r"[a-z0-9]+", question.lower()))
+                - stopwords
             )
 
-        model = get_embedding_model()
+            ranked = []
+            for record in records:
+                if not isinstance(record, dict):
+                    continue
 
-        query_embedding = model.encode(
-            question,
-            normalize_embeddings=True,
-        ).tolist()
+                title = str(record.get("title", "Medical reference"))
+                topic = str(record.get("topic", "General"))
+                summary = str(record.get("summary", ""))
+                searchable = f"{title} {topic} {summary}".lower()
 
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=min(5, count),
-            include=[
-                "documents",
-                "metadatas",
-                "distances",
-            ],
-        )
+                if not summary.strip():
+                    continue
 
-        documents = (
-            results.get("documents") or [[]]
-        )[0] or []
+                matched = sum(
+                    1 for term in query_terms if term in searchable
+                )
+                score = matched / max(len(query_terms), 1)
 
-        metadatas = (
-            results.get("metadatas") or [[]]
-        )[0] or []
+                topic_terms = set(
+                    re.findall(r"[a-z0-9]+", f"{title} {topic}".lower())
+                )
+                score += (
+                    0.15
+                    * len(query_terms & topic_terms)
+                    / max(len(query_terms), 1)
+                )
+                score = min(score, 1.0)
 
-        distances = (
-            results.get("distances") or [[]]
-        )[0] or []
+                ranked.append((score, record))
+
+            ranked.sort(key=lambda item: item[0], reverse=True)
+            selected = ranked[:5]
+
+            documents = [item[1]["summary"] for item in selected]
+            metadatas = [
+                {
+                    "title": item[1].get("title", "Medical reference"),
+                    "topic": item[1].get("topic", "General"),
+                    "url": item[1].get("url", ""),
+                }
+                for item in selected
+            ]
+            distances = [1.0 - item[0] for item in selected]
+
+        else:
+            count = collection.count()
+
+            if count == 0:
+                raise HTTPException(
+                    status_code=503,
+                    detail=(
+                        "The medical knowledge index is empty. "
+                        "Build it using scripts/build_index.py."
+                    ),
+                )
+
+            model = get_embedding_model()
+            query_embedding = model.encode(
+                question,
+                normalize_embeddings=True,
+            ).tolist()
+
+            results = collection.query(
+                query_embeddings=[query_embedding],
+                n_results=min(5, count),
+                include=["documents", "metadatas", "distances"],
+            )
+
+            documents = (results.get("documents") or [[]])[0] or []
+            metadatas = (results.get("metadatas") or [[]])[0] or []
+            distances = (results.get("distances") or [[]])[0] or []
 
         if not documents or not distances:
             return make_response(
