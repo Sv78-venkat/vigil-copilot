@@ -368,7 +368,7 @@
         setStatus("Sign in to load your profile.");
         return;
       }
-      const response = await fetch("/profile", {
+      const response = await fetch(window.VIGIL_CONFIG.API_BASE_URL + "/profile", {
         headers: { Authorization: "Bearer " + data.session.access_token }
       });
       const payload = await response.json();
@@ -414,7 +414,7 @@
     button.disabled = true;
     setStatus("Saving your profile…");
     try {
-      const response = await fetch("/profile", {
+      const response = await fetch(window.VIGIL_CONFIG.API_BASE_URL + "/profile", {
         method: "POST",
         headers: {
           Authorization: "Bearer " + data.session.access_token,
@@ -513,7 +513,7 @@
         throw new Error("Authentication helper is unavailable.");
       }
 
-      const response = await fetch("/reports", {
+      const response = await fetch(window.VIGIL_CONFIG.API_BASE_URL + "/reports", {
         method: "GET",
         headers: await vigilAuthorizationHeaders()
       });
