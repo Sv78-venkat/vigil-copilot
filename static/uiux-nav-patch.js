@@ -223,6 +223,13 @@
   const profileCard = document.createElement("article");
   profileCard.className = "card";
   profileCard.innerHTML = `
+  
+<div class="vigil-patient-id" style="margin-bottom: 20px; padding: 14px; border: 1px solid #d8e2ee; border-radius: 10px;">
+  <div style="font-size: 13px; color: #64748b;">Vigil Patient ID</div>
+  <strong id="vigilPatientId" style="display: block; margin-top: 5px;">Loading…</strong>
+  <div style="font-size: 12px; color: #64748b; margin-top: 5px;">Your account-linked reference ID</div>
+</div>
+   
     <form id="vigilProfileForm">
       <div class="vigil-form-grid">
         <div class="vigil-field">
@@ -319,6 +326,19 @@
     if (el) el.textContent = message;
   }
 
+  function setPatientId(userId) {
+    const el = document.getElementById("vigilPatientId");
+    if (!el) return;
+
+    if (!userId || typeof userId !== "string") {
+      el.textContent = "Unavailable";
+      return;
+    }
+
+    const compactId = userId.replace(/-/g, "").toUpperCase();
+    el.textContent = "VIG-" + compactId.slice(0, 12);
+  }
+
   function fillProfile(profile) {
     const fields = {
       full_name: "vigilProfileName",
@@ -354,6 +374,7 @@
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.detail || "Could not load profile.");
       const profile = payload.profile || payload.patient_profile || payload;
+      setPatientId(payload.account?.user_id || data.session.user.id);
       if (profile && typeof profile === "object") fillProfile(profile);
       profileLoaded = true;
       setStatus("Profile loaded. Review your details and save any changes.");
@@ -405,6 +426,7 @@
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.detail || "Could not save profile.");
       fillProfile(payload.profile || body);
+      setPatientId(data.session.user.id);
       profileLoaded = true;
       setStatus("Profile saved successfully.");
     } catch (error) {
