@@ -596,7 +596,7 @@ async function vigilLoadReportHistory() {
   if (refreshButton) refreshButton.disabled = true;
 
   try {
-    const response = await fetch("/reports", {
+    const response = await fetch(window.VIGIL_CONFIG.API_BASE_URL + "/reports", {
       method: "GET",
       headers: await vigilAuthorizationHeaders()
     });
@@ -726,7 +726,7 @@ if (reportHistoryList) {
 
     try {
       const endpoint =
-        "/reports/" + encodeURIComponent(reportId) + "/original" +
+        window.VIGIL_CONFIG.API_BASE_URL + "/reports/" + encodeURIComponent(reportId) + "/original" +
         (isDownload ? "?download=true" : "");
 
       const response = await fetch(endpoint, {
@@ -911,7 +911,7 @@ chatForm.addEventListener("submit", async (event) => {
   const pending = addMessage("Checking the medical knowledge assistant…", "bot");
 
   try {
-    const response = await fetch("/ask", {
+    const response = await fetch(window.VIGIL_CONFIG.API_BASE_URL + "/ask", {
       method: "POST",
       headers: await vigilAuthorizationHeaders({"Content-Type": "application/json"}),
       body: JSON.stringify({question})
@@ -1040,7 +1040,7 @@ document.getElementById("uploadButton").addEventListener("click", async () => {
   try {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await fetch("/analyze-report", {method:"POST",headers:await vigilAuthorizationHeaders(),body:formData});
+    const response = await fetch(window.VIGIL_CONFIG.API_BASE_URL + "/analyze-report", {method:"POST",headers:await vigilAuthorizationHeaders(),body:formData});
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || data.error || "Upload failed");
     renderReportMarkdown(result, data.analysis || data.text || data.extracted_text || data.message || JSON.stringify(data, null, 2));
