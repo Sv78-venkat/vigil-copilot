@@ -40,7 +40,7 @@ OLLAMA_TAGS_URL = f"{OLLAMA_BASE_URL}/api/tags"
 OLLAMA_MODEL = "qwen2.5:3b"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
-MAX_DISTANCE = 0.95
+MAX_DISTANCE = 0.80
 MAX_CONTEXT_CHARS = 12000
 MAX_ANSWER_TOKENS = 450
 OLLAMA_TIMEOUT_SECONDS = 180
@@ -598,12 +598,17 @@ def get_ollama_model_status():
 
 
 def request_ollama(messages, num_predict=450):
-    """Send a chat request to the selected AI provider."""
+    """Send a chat request to the configured AI provider.
+
+    AI_PROVIDER=gemini uses Gemini exclusively.
+    AI_PROVIDER=ollama uses the configured local Ollama server.
+    Provider failures are converted into safe, actionable API errors.
+    """
     if AI_PROVIDER == "gemini":
         if not GEMINI_API_KEY:
             raise HTTPException(
                 status_code=503,
-                detail="Gemini API key is not configured on the server.",
+                detail="Gemini is selected, but its API key is not configured.",
             )
 
         contents = []
@@ -613,7 +618,7 @@ def request_ollama(messages, num_predict=450):
             role = message.get("role", "user")
             content = message.get("content", "")
 
-            if not isinstance(content, str):
+            if not isinstance(content, str) or not content.strip():
                 continue
 
             if role == "system":
@@ -629,10 +634,17 @@ def request_ollama(messages, num_predict=450):
                     "parts": [{"text": content}],
                 })
 
+        if not contents:
+            raise HTTPException(
+                status_code=422,
+                detail="No usable messages were supplied to the AI provider.",
+            )
+
         payload = {
             "contents": contents,
             "generationConfig": {
-                "maxOutputTokens": max(num_predict, 1024),
+                "maxOutputTokens": max(1, min(int(num_predict), 8192)),
+                "temperature": 0.1,
             },
         }
 
@@ -641,81 +653,198 @@ def request_ollama(messages, num_predict=450):
                 "parts": [{"text": system_instruction}],
             }
 
-        response = requests.post(
-            GEMINI_URL,
-            headers={
-                "x-goog-api-key": GEMINI_API_KEY,
-                "Content-Type": "application/json",
-            },
-            json=payload,
-            timeout=GEMINI_TIMEOUT_SECONDS,
-        )
-
-        response.raise_for_status()
-        result = response.json()
-
-
-        candidates = result.get("candidates", [])
-        answer = ""
-
-        if candidates:
-            parts = (
-                candidates[0]
-                .get("content", {})
-                .get("parts", [])
+        try:
+            response = requests.post(
+                GEMINI_URL,
+                headers={
+                    "x-goog-api-key": GEMINI_API_KEY,
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=GEMINI_TIMEOUT_SECONDS,
             )
-            answer = "\n".join(
-                part.get("text", "")
-                for part in parts
-                if isinstance(part.get("text"), str)
-            )
-
-        if not answer.strip():
-            finish_reason = (
-                candidates[0].get("finishReason", "UNKNOWN")
-                if candidates
-                else "NO_CANDIDATE"
-            )
-
+        except requests.Timeout as exc:
+            raise HTTPException(
+                status_code=504,
+                detail="Gemini timed out while generating a response. Please try again.",
+            ) from exc
+        except requests.ConnectionError as exc:
             raise HTTPException(
                 status_code=502,
-                detail=(
-                    "Gemini returned no usable text. "
-                    f"Finish reason: {finish_reason}."
-                ),
+                detail="The server could not connect to Gemini. Check the network and provider status.",
+            ) from exc
+        except requests.RequestException as exc:
+            raise HTTPException(
+                status_code=502,
+                detail="The request to Gemini failed before a response was received.",
+            ) from exc
+
+        if not response.ok:
+            status = response.status_code
+
+            if status == 400:
+                detail = (
+                    "Gemini rejected the request. Check the configured model "
+                    "and request format."
+                )
+                api_status = 502
+            elif status in (401, 403):
+                detail = (
+                    "Gemini rejected the server credentials or permissions. "
+                    "Check the API key configuration in the hosting dashboard."
+                )
+                api_status = 502
+            elif status == 404:
+                detail = (
+                    "The configured Gemini model or endpoint was not found. "
+                    "Check GEMINI_MODEL."
+                )
+                api_status = 502
+            elif status == 429:
+                detail = (
+                    "Gemini rate limit or quota reached. Check the provider "
+                    "quota and try again later."
+                )
+                api_status = 429
+            elif status >= 500:
+                detail = (
+                    "Gemini is temporarily unavailable. Please try again later."
+                )
+                api_status = 502
+            else:
+                detail = f"Gemini returned HTTP {status}. Check the server configuration."
+                api_status = 502
+
+            raise HTTPException(
+                status_code=api_status,
+                detail=detail,
             )
 
-        return answer.strip()
+        try:
+            result = response.json()
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=502,
+                detail="Gemini returned a response that was not valid JSON.",
+            ) from exc
+
+        candidates = result.get("candidates", [])
+        answer_parts = []
+
+        if candidates and isinstance(candidates[0], dict):
+            candidate = candidates[0]
+            parts = candidate.get("content", {}).get("parts", [])
+
+            for part in parts:
+                if isinstance(part, dict):
+                    text_part = part.get("text")
+                    if isinstance(text_part, str) and text_part.strip():
+                        answer_parts.append(text_part.strip())
+
+            answer = "\n".join(answer_parts).strip()
+
+            if answer:
+                return answer
+
+            finish_reason = str(candidate.get("finishReason", "UNKNOWN"))
+            if finish_reason in ("SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT"):
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "Gemini could not provide this response because "
+                        "the request was blocked by its safety filters."
+                    ),
+                )
+
+        prompt_feedback = result.get("promptFeedback", {})
+        block_reason = (
+            prompt_feedback.get("blockReason", "")
+            if isinstance(prompt_feedback, dict)
+            else ""
+        )
+
+        if block_reason:
+            raise HTTPException(
+                status_code=422,
+                detail="Gemini blocked the request under its safety policies.",
+            )
+
+        raise HTTPException(
+            status_code=502,
+            detail="Gemini returned no usable text. Please try again.",
+        )
 
     if AI_PROVIDER != "ollama":
         raise HTTPException(
             status_code=503,
-            detail="Unsupported AI provider. Configure ollama or gemini.",
+            detail="Unsupported AI provider. Set AI_PROVIDER to 'gemini' or 'ollama'.",
         )
 
-    response = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": OLLAMA_MODEL,
-            "messages": messages,
-            "stream": False,
-            "options": {
-                "temperature": 0.1,
-                "num_predict": num_predict,
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": OLLAMA_MODEL,
+                "messages": messages,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "num_predict": num_predict,
+                },
             },
-        },
-        timeout=OLLAMA_TIMEOUT_SECONDS,
-    )
+            timeout=OLLAMA_TIMEOUT_SECONDS,
+        )
+    except requests.Timeout as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="Ollama timed out while generating a response.",
+        ) from exc
+    except requests.ConnectionError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Cannot connect to Ollama. Confirm that Ollama is running and reachable.",
+        ) from exc
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="The request to Ollama failed before a response was received.",
+        ) from exc
 
-    response.raise_for_status()
+    if not response.ok:
+        status = response.status_code
 
-    payload = response.json()
-    answer = payload.get("message", {}).get("content", "")
+        if status == 404:
+            detail = "The configured Ollama model or endpoint was not found."
+            api_status = 503
+        elif status == 429:
+            detail = "Ollama is busy or rate-limited. Please try again shortly."
+            api_status = 503
+        elif status >= 500:
+            detail = "Ollama encountered a server error. Please try again."
+            api_status = 502
+        else:
+            detail = f"Ollama returned HTTP {status}. Check its configuration."
+            api_status = 502
+
+        raise HTTPException(
+            status_code=api_status,
+            detail=detail,
+        )
+
+    try:
+        result = response.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Ollama returned a response that was not valid JSON.",
+        ) from exc
+
+    answer = result.get("message", {}).get("content", "")
 
     if not isinstance(answer, str) or not answer.strip():
         raise HTTPException(
             status_code=502,
-            detail="The AI model returned an empty response.",
+            detail="The configured AI model returned an empty response.",
         )
 
     return answer.strip()
@@ -839,6 +968,17 @@ def vigil_frontend_config():
         path=str(config_path),
         media_type="application/javascript",
         headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/static/vigil-premium.css")
+def vigil_premium_stylesheet():
+    css_path = BASE_DIR / "static" / "vigil-premium.css"
+    if not css_path.is_file():
+        raise HTTPException(status_code=404, detail="Premium stylesheet not found")
+    return FileResponse(
+        path=str(css_path),
+        media_type="text/css",
     )
 
 
@@ -1010,13 +1150,24 @@ def ask(
                 "in", "is", "it", "me", "my", "of", "on", "or",
                 "the", "to", "was", "what", "when", "where",
                 "which", "who", "why", "with", "you", "your",
+                "about", "explain", "tell", "information",
+                "test", "tests", "measure", "measures",
+                "prevent", "prevention", "help",
             }
+
             query_terms = (
                 set(re.findall(r"[a-z0-9]+", question.lower()))
                 - stopwords
             )
 
+            if not query_terms:
+                return make_response(
+                    question,
+                    "Please include a medical topic in your question.",
+                )
+
             ranked = []
+
             for record in records:
                 if not isinstance(record, dict):
                     continue
@@ -1024,26 +1175,52 @@ def ask(
                 title = str(record.get("title", "Medical reference"))
                 topic = str(record.get("topic", "General"))
                 summary = str(record.get("summary", ""))
-                searchable = f"{title} {topic} {summary}".lower()
 
                 if not summary.strip():
                     continue
 
-                matched = sum(
-                    1 for term in query_terms if term in searchable
+                title_terms = set(
+                    re.findall(r"[a-z0-9]+", title.lower())
                 )
-                score = matched / max(len(query_terms), 1)
-
                 topic_terms = set(
-                    re.findall(r"[a-z0-9]+", f"{title} {topic}".lower())
+                    re.findall(r"[a-z0-9]+", topic.lower())
                 )
-                score += (
-                    0.15
-                    * len(query_terms & topic_terms)
-                    / max(len(query_terms), 1)
+                summary_terms = set(
+                    re.findall(r"[a-z0-9]+", summary.lower())
                 )
-                score = min(score, 1.0)
 
+                title_topic_terms = title_terms | topic_terms
+                title_hits = query_terms & title_terms
+                clinical_hits = query_terms & title_topic_terms
+
+                # Reject records that only mention query words
+                # incidentally in their summaries.
+                if not clinical_hits:
+                    continue
+
+                title_topic_score = (
+                    len(clinical_hits) / len(query_terms)
+                )
+                summary_score = (
+                    len(query_terms & summary_terms) / len(query_terms)
+                )
+
+                score = (
+                    0.85 * title_topic_score
+                    + 0.15 * summary_score
+                )
+
+                # Require a meaningful match in the article title
+                # or medical topic.
+                if title_topic_score < 0.50:
+                    continue
+
+                if title_hits:
+                    score += 0.05 * (
+                        len(title_hits) / len(query_terms)
+                    )
+
+                score = min(score, 1.0)
                 ranked.append((score, record))
 
             ranked.sort(key=lambda item: item[0], reverse=True)
@@ -1219,8 +1396,8 @@ def ask(
         raise HTTPException(
             status_code=503,
             detail=(
-                "Cannot connect to Ollama. Start Ollama and "
-                "confirm that the configured model is available."
+                "Cannot connect to the configured AI provider. Check its configuration and "
+                "service availability."
             ),
         ) from exc
 
@@ -1237,8 +1414,8 @@ def ask(
         raise HTTPException(
             status_code=502,
             detail=(
-                "The Ollama request failed. Check that Ollama "
-                "is running and try again."
+                "The configured AI provider request failed. Check that the provider "
+                "is configured correctly and try again."
             ),
         ) from exc
 
@@ -1246,8 +1423,8 @@ def ask(
         raise HTTPException(
             status_code=500,
             detail=(
-                "An internal Healthcare Copilot error occurred. "
-                "Check the server terminal for debugging details."
+                "An internal Vigil Healthcare AI error occurred. "
+                "Check the server logs for details."
             ),
         ) from exc
 
@@ -1487,7 +1664,7 @@ Do not repeat the Python comparison list or add another disclaimer.
     except requests.ConnectionError as exc:
         raise HTTPException(
             status_code=503,
-            detail="Cannot connect to Ollama. Check that Ollama is running.",
+            detail="Cannot connect to the configured AI provider. Check its configuration and availability.",
         ) from exc
 
     except requests.Timeout as exc:
@@ -1505,7 +1682,7 @@ Do not repeat the Python comparison list or add another disclaimer.
     except ValueError as exc:
         raise HTTPException(
             status_code=502,
-            detail="Ollama returned an invalid response.",
+            detail="The configured AI provider returned an invalid response.",
         ) from exc
 
     # G. Assemble the final analysis.
